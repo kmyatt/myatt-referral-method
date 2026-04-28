@@ -1,0 +1,407 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum GlobalRole {
+  MEMBER
+  PLATFORM_ADMIN
+}
+
+enum BusinessUserRole {
+  BUSINESS_OWNER
+  BUSINESS_STAFF
+}
+
+enum BusinessStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  DISABLED
+}
+
+enum PlanInterval {
+  MONTHLY
+}
+
+enum CustomerStatus {
+  LEAD
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum SubscriptionStatus {
+  INCOMPLETE
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  UNPAID
+  PAUSED
+  CANCELED
+  EXPIRED
+  REFUNDED
+}
+
+enum ReferralStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum BillingEventType {
+  CHECKOUT_CREATED
+  SUBSCRIPTION_CREATED
+  SUBSCRIPTION_UPDATED
+  SUBSCRIPTION_CANCELED
+  INVOICE_PAID
+  INVOICE_PAYMENT_FAILED
+  DISCOUNT_APPLIED
+  DISCOUNT_REMOVED
+  MANUAL_ADJUSTMENT
+  WEBHOOK_RECEIVED
+}
+
+enum BillingEventStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum PlatformFeeStatus {
+  ESTIMATED
+  RECORDED
+  SETTLED
+}
+
+enum AuditActorType {
+  PLATFORM_USER
+  CUSTOMER
+  SYSTEM
+}
+
+enum WebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+}
+
+model PlatformUser {
+  id               String         @id @default(uuid()) @db.Uuid
+  email            String         @unique
+  passwordHash     String
+  firstName        String?
+  lastName         String?
+  globalRole       GlobalRole     @default(MEMBER)
+  emailVerifiedAt  DateTime?
+  lastLoginAt      DateTime?
+  isActive         Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  deletedAt        DateTime?
+  sessions         AuthSession[]
+  businessUsers    BusinessUser[]
+  customerProfiles Customer[]
+  ownedBusinesses  Business[]     @relation("BusinessOwner")
+  auditLogs        AuditLog[]     @relation("AuditActorUser")
+
+  @@index([globalRole, isActive])
+}
+
+model AuthSession {
+  id         String       @id @default(uuid()) @db.Uuid
+  userId     String       @db.Uuid
+  tokenHash  String       @unique
+  expiresAt  DateTime
+  lastSeenAt DateTime?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  user       PlatformUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model Business {
+  id                         String                 @id @default(uuid()) @db.Uuid
+  ownerUserId                String                 @db.Uuid
+  name                       String
+  slug                       String                 @unique
+  description                String?
+  status                     BusinessStatus         @default(DRAFT)
+  supportEmail               String?
+  websiteUrl                 String?
+  logoUrl                    String?
+  currency                   String                 @default("USD")
+  timezone                   String                 @default("America/New_York")
+  stripeAccountId            String?
+  stripeAccountStatus        String?
+  stripePublishableKey       String?
+  stripeCheckoutEnabled      Boolean                @default(false)
+  referralProgramEnabled     Boolean                @default(true)
+  defaultReferralPercent     Decimal                @default(5) @db.Decimal(5, 2)
+  maxReferralDiscountPercent Decimal?               @db.Decimal(5, 2)
+  onboardingCompletedAt      DateTime?
+  createdAt                  DateTime               @default(now())
+  updatedAt                  DateTime               @updatedAt
+  deletedAt                  DateTime?
+  ownerUser                  PlatformUser           @relation("BusinessOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  users                      BusinessUser[]
+  plans                      SubscriptionPlan[]
+  customers                  Customer[]
+  subscriptions              Subscription[]
+  referrals                  Referral[]
+  referralDiscountRules      ReferralDiscountRule[]
+  billingEvents              BillingEvent[]
+  platformFeeRecords         PlatformFeeRecord[]
+  auditLogs                  AuditLog[]
+  webhookEvents              WebhookEvent[]
+
+  @@index([ownerUserId])
+  @@index([status])
+}
+
+model BusinessUser {
+  id         String           @id @default(uuid()) @db.Uuid
+  businessId String           @db.Uuid
+  userId     String           @db.Uuid
+  role       BusinessUserRole
+  title      String?
+  isActive   Boolean          @default(true)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  business   Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user       PlatformUser     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId])
+  @@index([userId, role])
+  @@index([businessId, role])
+}
+
+model SubscriptionPlan {
+  id                      String               @id @default(uuid()) @db.Uuid
+  businessId              String               @db.Uuid
+  name                    String
+  slug                    String
+  description             String?
+  priceCents              Int
+  minPriceCents           Int?
+  currency                String               @default("USD")
+  interval                PlanInterval         @default(MONTHLY)
+  stripeProductId         String?
+  stripePriceId           String?
+  referralPercentOverride Decimal?             @db.Decimal(5, 2)
+  maxDiscountPercent      Decimal?             @db.Decimal(5, 2)
+  isActive                Boolean              @default(true)
+  sortOrder               Int                  @default(0)
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  deletedAt               DateTime?
+  business                Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  subscriptions           Subscription[]
+  referralDiscountRules   ReferralDiscountRule[]
+
+  @@unique([businessId, slug])
+  @@index([businessId, isActive])
+}
+
+model Customer {
+  id                        String         @id @default(uuid()) @db.Uuid
+  businessId                String         @db.Uuid
+  platformUserId            String?        @db.Uuid
+  email                     String
+  firstName                 String?
+  lastName                  String?
+  referralCode              String         @unique
+  status                    CustomerStatus @default(ACTIVE)
+  stripeCustomerId          String?        @unique
+  referralProgramEnabled    Boolean        @default(true)
+  allowReferralReactivation Boolean        @default(true)
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+  deletedAt                 DateTime?
+  business                  Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  platformUser              PlatformUser?  @relation(fields: [platformUserId], references: [id], onDelete: SetNull)
+  subscriptions             Subscription[]
+  referralsSent             Referral[]     @relation("CustomerReferralsSent")
+  referralReceived          Referral?      @relation("CustomerReferralReceived")
+  billingEvents             BillingEvent[]
+  auditLogs                 AuditLog[]     @relation("AuditActorCustomer")
+
+  @@unique([businessId, email])
+  @@index([businessId, platformUserId])
+  @@index([businessId, status])
+}
+
+model Subscription {
+  id                       String             @id @default(uuid()) @db.Uuid
+  businessId               String             @db.Uuid
+  customerId               String             @db.Uuid
+  planId                   String             @db.Uuid
+  stripeCustomerId         String?
+  stripeSubscriptionId     String?            @unique
+  stripePriceId            String?
+  status                   SubscriptionStatus @default(INCOMPLETE)
+  currentPeriodStart       DateTime?
+  currentPeriodEnd         DateTime?
+  basePriceCents           Int
+  currentDiscountPercent   Decimal            @default(0) @db.Decimal(5, 2)
+  effectivePriceCents      Int
+  cancelAtPeriodEnd        Boolean            @default(false)
+  canceledAt               DateTime?
+  pausedAt                 DateTime?
+  lastStripeEventCreatedAt DateTime?
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  deletedAt                DateTime?
+  business                 Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer                 Customer           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  plan                     SubscriptionPlan   @relation(fields: [planId], references: [id], onDelete: Restrict)
+  referral                 Referral?
+  billingEvents            BillingEvent[]
+  platformFeeRecords       PlatformFeeRecord[]
+
+  @@index([businessId, status])
+  @@index([customerId, status])
+  @@index([planId])
+}
+
+model ReferralDiscountRule {
+  id                 String            @id @default(uuid()) @db.Uuid
+  businessId         String            @db.Uuid
+  planId             String?           @db.Uuid
+  name               String
+  referralPercent    Decimal           @db.Decimal(5, 2)
+  maxDiscountPercent Decimal?          @db.Decimal(5, 2)
+  isActive           Boolean           @default(true)
+  effectiveFrom      DateTime          @default(now())
+  effectiveTo        DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  business           Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  plan               SubscriptionPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, isActive])
+  @@index([planId, isActive])
+}
+
+model Referral {
+  id                        String         @id @default(uuid()) @db.Uuid
+  businessId                String         @db.Uuid
+  referrerCustomerId        String         @db.Uuid
+  referredCustomerId        String         @unique @db.Uuid
+  referredSubscriptionId    String?        @unique @db.Uuid
+  referralCodeUsed          String
+  status                    ReferralStatus @default(PENDING)
+  activatedAt               DateTime?
+  deactivatedAt             DateTime?
+  discountPercentAtCreation Decimal        @db.Decimal(5, 2)
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+  business                  Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  referrerCustomer          Customer       @relation("CustomerReferralsSent", fields: [referrerCustomerId], references: [id], onDelete: Cascade)
+  referredCustomer          Customer       @relation("CustomerReferralReceived", fields: [referredCustomerId], references: [id], onDelete: Cascade)
+  referredSubscription      Subscription?  @relation(fields: [referredSubscriptionId], references: [id], onDelete: SetNull)
+  billingEvents             BillingEvent[]
+
+  @@index([businessId, referrerCustomerId, status])
+  @@index([businessId, referredCustomerId])
+  @@index([businessId, referredSubscriptionId])
+}
+
+model BillingEvent {
+  id                      String             @id @default(uuid()) @db.Uuid
+  businessId              String             @db.Uuid
+  customerId              String?            @db.Uuid
+  subscriptionId          String?            @db.Uuid
+  referralId              String?            @db.Uuid
+  type                    BillingEventType
+  status                  BillingEventStatus @default(PENDING)
+  stripeEventId           String?            @unique
+  stripeInvoiceId         String?
+  stripeCheckoutSessionId String?
+  amountCents             Int?
+  discountPercent         Decimal?           @db.Decimal(5, 2)
+  discountAmountCents     Int?
+  effectivePriceCents     Int?
+  metadata                Json?
+  occurredAt              DateTime           @default(now())
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  business                Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer                Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  subscription            Subscription?      @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  referral                Referral?          @relation(fields: [referralId], references: [id], onDelete: SetNull)
+  platformFeeRecords      PlatformFeeRecord[]
+
+  @@index([businessId, type])
+  @@index([customerId])
+  @@index([subscriptionId])
+  @@index([stripeInvoiceId])
+}
+
+model PlatformFeeRecord {
+  id             String            @id @default(uuid()) @db.Uuid
+  businessId     String            @db.Uuid
+  subscriptionId String?           @db.Uuid
+  billingEventId String?           @db.Uuid
+  feeAmountCents Int
+  feePercent     Decimal?          @db.Decimal(5, 2)
+  netAmountCents Int
+  currency       String            @default("USD")
+  status         PlatformFeeStatus @default(RECORDED)
+  occurredAt     DateTime          @default(now())
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  business       Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  subscription   Subscription?     @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  billingEvent   BillingEvent?     @relation(fields: [billingEventId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, status])
+  @@index([subscriptionId])
+}
+
+model AuditLog {
+  id              String        @id @default(uuid()) @db.Uuid
+  businessId      String?       @db.Uuid
+  actorUserId     String?       @db.Uuid
+  actorCustomerId String?       @db.Uuid
+  actorType       AuditActorType
+  action          String
+  targetType      String
+  targetId        String
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  business        Business?     @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  actorUser       PlatformUser? @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorCustomer   Customer?     @relation("AuditActorCustomer", fields: [actorCustomerId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([actorCustomerId, createdAt])
+  @@index([targetType, targetId])
+}
+
+model WebhookEvent {
+  id           String             @id @default(uuid()) @db.Uuid
+  businessId   String?            @db.Uuid
+  provider     String             @default("stripe")
+  eventId      String             @unique
+  type         String
+  status       WebhookEventStatus @default(RECEIVED)
+  payload      Json
+  errorMessage String?
+  processedAt  DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  business     Business?          @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, status])
+  @@index([type, status])
+}
