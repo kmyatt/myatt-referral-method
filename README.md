@@ -1,4 +1,4 @@
-# Myatt Referral Method
+﻿# Myatt Referral Method
 
 Myatt Referral Method is a production-minded SaaS MVP for referral-powered subscription growth.
 
