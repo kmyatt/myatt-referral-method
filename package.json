@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate --schema=prisma/schema.prisma && next build",
+    "build": "node scripts/vercel-build.mjs",
     "start": "next start",
     "lint": "eslint",
     "test": "node --experimental-strip-types --loader ./tests/alias-loader.mjs tests/run-tests.ts",
@@ -12,7 +12,9 @@
     "db:generate": "prisma generate --schema=prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema=prisma/schema.prisma",
     "db:push": "prisma db push --schema=prisma/schema.prisma",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:bootstrap": "prisma db push --schema=prisma/schema.prisma && prisma generate --schema=prisma/schema.prisma",
+    "db:bootstrap-demo": "npm run db:bootstrap && tsx prisma/seed.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -43,4 +45,3 @@
     "typescript": "^5"
   }
 }
-
