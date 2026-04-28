@@ -11,7 +11,7 @@ function run(command) {
 run("prisma db push --schema=prisma/schema.prisma");
 run("prisma generate --schema=prisma/schema.prisma");
 
-if (process.env.DEMO_MODE === "true") {
+if (process.env.DEMO_MODE !== "false") {
   run("tsx prisma/seed.ts");
 }
 
