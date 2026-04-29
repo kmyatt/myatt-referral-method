@@ -1,6 +1,7 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { LogoutButton } from "@/client-forms";
 import { cn } from "@/lib/utils";
 
 export function AppLogo({ className }: { className?: string }) {
@@ -133,11 +134,13 @@ export function DashboardShell({
   title,
   subtitle,
   nav,
+  actions,
   children,
 }: {
   title: string;
   subtitle: string;
   nav: Array<{ href: string; label: string; active?: boolean }>;
+  actions?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -163,9 +166,14 @@ export function DashboardShell({
       </aside>
       <main className="min-w-0 flex-1 space-y-6">
         <div className="rounded-[2rem] border border-[var(--line)] bg-[rgba(255,255,255,0.88)] p-6 shadow-xl shadow-slate-950/5 sm:p-8">
-          <p className="eyebrow">Dashboard</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-4xl">{title}</h1>
-          <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--muted)]">{subtitle}</p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="eyebrow">Dashboard</p>
+              <h1 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-4xl">{title}</h1>
+              <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--muted)]">{subtitle}</p>
+            </div>
+            <div className="shrink-0">{actions ?? <LogoutButton />}</div>
+          </div>
         </div>
         {children}
       </main>
@@ -197,4 +205,3 @@ export function MiniBarChart({ data }: { data: Array<{ label: string; value: num
     </Card>
   );
 }
-
