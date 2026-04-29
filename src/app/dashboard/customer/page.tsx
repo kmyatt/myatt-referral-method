@@ -1,4 +1,4 @@
-﻿import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 
 import { LogoutButton } from "@/client-forms";
 import { customerNav } from "@/dashboard-nav";
@@ -22,10 +22,8 @@ export default async function CustomerDashboardPage() {
       title={`${dashboard.customer.business.name} subscriber dashboard`}
       subtitle="See your active subscription, your referral code, how much discount you’re currently earning, and which referred subscribers are still active."
       nav={customerNav("/dashboard/customer")}
+      actions={<LogoutButton />}
     >
-      <div className="flex justify-end">
-        <LogoutButton />
-      </div>
       <section className="grid gap-4 md:grid-cols-4">
         <StatCard label="Referral code" value={dashboard.customer.referralCode} />
         <StatCard label="Current price" value={dashboard.activeSubscription ? formatCurrency(dashboard.activeSubscription.effectivePriceCents) : "N/A"} />
@@ -67,4 +65,3 @@ export default async function CustomerDashboardPage() {
     </DashboardShell>
   );
 }
-
