@@ -484,13 +484,16 @@ export function CheckoutForm({
   );
 }
 
-export function LogoutButton() {
+export function LogoutButton({ className }: { className?: string }) {
   const router = useRouter();
 
   return (
     <button
       type="button"
-      className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400"
+      className={cn(
+        "rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400",
+        className,
+      )}
       onClick={async () => {
         await fetch("/api/auth/logout", { method: "POST" });
         router.push("/login");
