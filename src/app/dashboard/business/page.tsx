@@ -1,4 +1,4 @@
-﻿import { LogoutButton } from "@/client-forms";
+import { LogoutButton } from "@/client-forms";
 import { businessNav } from "@/dashboard-nav";
 import { getBusinessDashboardData } from "@/lib/dashboard-data";
 import { decimalToNumber, formatCurrency, formatPercent } from "@/lib/money";
@@ -14,10 +14,8 @@ export default async function BusinessOverviewPage() {
       title={`${dashboard.business.name} dashboard`}
       subtitle="Track the financial impact of referral-powered subscription growth across subscribers, referred conversions, live discounts, and churn."
       nav={businessNav("/dashboard/business")}
+      actions={<LogoutButton />}
     >
-      <div className="flex justify-end">
-        <LogoutButton />
-      </div>
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Gross MRR" value={formatCurrency(dashboard.metrics.grossMrr)} hint="Base recurring revenue before discounts." />
         <StatCard label="Net MRR" value={formatCurrency(dashboard.metrics.netMrr)} hint="Effective recurring revenue after referral discounts." />
@@ -81,4 +79,3 @@ export default async function BusinessOverviewPage() {
     </DashboardShell>
   );
 }
-
