@@ -151,18 +151,23 @@ export function DashboardShell({
         <AppLogo />
         <nav className="mt-8 space-y-2">
           {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "block rounded-2xl px-4 py-3 text-sm font-medium transition",
-                item.active
-                  ? "bg-slate-950 text-white"
-                  : "text-slate-700 hover:bg-slate-100",
-              )}
-            >
-              {item.label}
-            </Link>
+            item.active ? (
+              <span
+                key={item.href}
+                aria-current="page"
+                className="block rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white"
+              >
+                {item.label}
+              </span>
+            ) : (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="block rounded-2xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+              >
+                {item.label}
+              </Link>
+            )
           ))}
         </nav>
         <div className="mt-6 border-t border-[var(--line)] pt-6">
