@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -70,14 +70,26 @@ function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   );
 }
 
-function SubmitButton({ children, pending }: { children: string; pending: boolean }) {
+function SubmitButton({
+  children,
+  pending,
+}: {
+  children?: React.ReactNode;
+  pending: boolean;
+}) {
+  const label =
+    typeof children === "string" && children.trim().length > 0
+      ? children
+      : children ?? "Continue";
+
   return (
     <button
       disabled={pending}
       type="submit"
+      aria-label={typeof label === "string" ? label : "Submit"}
       className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {pending ? "Working..." : children}
+      {pending ? "Working..." : label}
     </button>
   );
 }
@@ -489,7 +501,3 @@ export function LogoutButton() {
     </button>
   );
 }
-
-
-
-
