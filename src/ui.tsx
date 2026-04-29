@@ -143,9 +143,11 @@ export function DashboardShell({
   actions?: ReactNode;
   children: ReactNode;
 }) {
+  const resolvedActions = actions ?? <LogoutButton />;
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <aside className="hidden w-72 shrink-0 rounded-[2rem] border border-[var(--line)] bg-[rgba(255,255,255,0.84)] p-6 shadow-xl shadow-slate-950/5 lg:block">
+      <aside className="hidden w-72 shrink-0 rounded-[2rem] border border-[var(--line)] bg-[rgba(255,255,255,0.84)] p-6 shadow-xl shadow-slate-950/5 lg:flex lg:flex-col">
         <AppLogo />
         <nav className="mt-8 space-y-2">
           {nav.map((item) => (
@@ -163,6 +165,9 @@ export function DashboardShell({
             </Link>
           ))}
         </nav>
+        <div className="mt-6 border-t border-[var(--line)] pt-6">
+          <LogoutButton className="w-full justify-center" />
+        </div>
       </aside>
       <main className="min-w-0 flex-1 space-y-6">
         <div className="rounded-[2rem] border border-[var(--line)] bg-[rgba(255,255,255,0.88)] p-6 shadow-xl shadow-slate-950/5 sm:p-8">
@@ -172,7 +177,7 @@ export function DashboardShell({
               <h1 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-4xl">{title}</h1>
               <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--muted)]">{subtitle}</p>
             </div>
-            <div className="shrink-0">{actions ?? <LogoutButton />}</div>
+            <div className="shrink-0 lg:hidden">{resolvedActions}</div>
           </div>
         </div>
         {children}
